@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>STUDENT FORM</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+</head>
+<body onload="initializeForm();">
+    <div class="container">
+        <h2>STUDENT ENROLLMENT FORM</h2>
+        <form id="Studentform" method="post">
+            <div class="form-group">
+                <span>
+                    <label for="rollNo">Student RollNo:</label>
+                    <label id="empIdMsg"></label>
+                </span>
+                <input type="text" class="form-control" name="rollNo" id="rollNo" placeholder="Enter Student RollNo" required onblur="checkRollNo();">
+            </div>
+            <div class="form-group">
+                <label for="FullName">Student Name:</label>
+                <input type="text" class="form-control" id="FullName" placeholder="Enter Student Name" name="FullName" disabled>
+            </div>
+            <div class="form-group">
+                <label for="class">Class:</label>
+                <input type="text" class="form-control" id="class" placeholder="Enter Student Class" name="class" disabled>
+            </div>
+            <div class="form-group">
+                <label for="birthDate">Birth Date:</label>
+                <input type="date" class="form-control" id="birthDate" placeholder="Enter Birth Date" name="birthDate" disabled>
+            </div>
+            <div class="form-group">
+                <label for="address">Address:</label>
+                <textarea class="form-control" id="address" placeholder="Enter Address" name="address" disabled></textarea>
+            </div>
+            <div class="form-group">
+                <label for="enrollmentDate">Enrollment Date:</label>
+                <input type="date" class="form-control" id="enrollmentDate" placeholder="Enter Enrollment Date" name="enrollmentDate" disabled>
+            </div>             
+            <input type="button" class="btn btn-primary" id="StudentSave" value="Save" onclick="saveSTUDENTDB();" disabled>
+            <input type="button" class="btn btn-success" id="StudentUpdate" value="Update" onclick="updateSTUDENTDB();" disabled>
+            <input type="button" class="btn btn-danger" id="StudentReset" value="Reset" onclick="resetForm();" disabled>
+        </form>
+    </div>
+
+    <script>
+        function initializeForm() {
+            $("#rollNo").val("").focus().prop("disabled", false);
+            $("#FullName").val("").prop("disabled", true);
+            $("#class").val("").prop("disabled", true);
+            $("#birthDate").val("").prop("disabled", true);
+            $("#address").val("").prop("disabled", true);
+            $("#enrollmentDate").val("").prop("disabled", true);
+            $("#StudentSave").prop("disabled", true);
+            $("#StudentUpdate").prop("disabled", true);
+            $("#StudentReset").prop("disabled", true);
+        }
+
+        function validateAndGetFormData() {
+            var rollNoVar = $("#rollNo").val();
+            if (rollNoVar === "") {
+                alert("Roll No is a Required Value");
+                $("#rollNo").focus();
+                return "";
+            }
+
+            var FullNameVar = $("#FullName").val();
+            if (FullNameVar === "") {
+                alert("Name is a Required Value");
+                $("#FullName").focus();
+                return "";
+            }
+
+            var classVar = $("#class").val();
+            if (classVar === "") {
+                alert("Class is a Required Value");
+                $("#class").focus();
+                return "";
+            }
+            var birthDateVar = $("#birthDate").val();
+            if (birthDateVar === "") {
+                alert("Birth Date is a Required Value");
+                $("#birthDate").focus();
+                return "";
+            }
+            
+            var addressVar = $("#address").val();
+            if (addressVar === "") {
+                alert("Address is a Required Value");
+                $("#address").focus();
+                return "";
+            }
+            
+            var enrollmentDateVar = $("#enrollmentDate").val();
+            if (enrollmentDateVar === "") {
+                alert("Enrollment Date is a Required Value");
+                $("#enrollmentDate").focus();
+                return "";
+            }
+            
+            var jsonStrObj = {
+                rollNo: rollNoVar,
+                Name: FullNameVar,
+                class: classVar,
+                birthDate: birthDateVar,
+                address: addressVar,
+                enrollmentDate: enrollmentDateVar
+            };
+
+            return JSON.stringify(jsonStrObj);
+        }
+
+        function createPUTRequest(connToken, jsonObj, dbName, relName) {
+            var putRequest = "{\n"
+                + "\"token\" : \"" + connToken + "\",\n"
+                + "\"dbName\": \"" + dbName + "\",\n"
+                + "\"cmd\" : \"PUT\",\n"
+                + "\"rel\" : \"" + relName + "\",\n"
+                + "\"jsonStr\": \n" + jsonObj + "\n"
+                + "}";
+            return putRequest;
+        }
+
+        function createUPDATERequest(connToken, jsonObj, dbName, relName) {
+            var updateRequest = "{\n"
+                + "\"token\" : \"" + connToken + "\",\n"
+                + "\"dbName\": \"" + dbName + "\",\n"
+                + "\"cmd\" : \"UPDATE\",\n"
+                + "\"rel\" : \"" + relName + "\",\n"
+                + "\"jsonStr\": \n" + jsonObj + "\n"
+                + "}";
+            return updateRequest;
+        }
+
+        function createGETRequest(connToken, dbName, relName, key) {
+            var getRequest = "{\n"
+                + "\"token\" : \"" + connToken + "\",\n"
+                + "\"dbName\": \"" + dbName + "\",\n"
+                + "\"cmd\" : \"GET_BY_KEY\",\n"
+                + "\"rel\" : \"" + relName + "\",\n"
+                + "\"jsonStr\": \n{\"rollNo\": \"" + key + "\"}\n"
+                + "}";
+            return getRequest;
+        }
+
+        function executeCommand(reqString, dbBaseUrl, apiEndPointUrl) {
+            var url = dbBaseUrl + apiEndPointUrl;
+            var jsonObj;
+            $.post(url, reqString, function (result) {
+                jsonObj = JSON.parse(result);
+            }).fail(function (result) {
+                var dataJsonObj = result.responseText;
+                jsonObj = JSON.parse(dataJsonObj);
+            });
+            return jsonObj;
+        }
+
+        function resetForm() {
+            initializeForm();
+        }
+
+        function saveSTUDENTDB() {
+            var jsonStr = validateAndGetFormData();
+            if (jsonStr === "") {
+                return;
+            }
+
+            var getReqStr = createGETRequest("90932151|-31949221147618108|90963797", "STUDENT-DB", "STUDENT-REL", $("#rollNo").val());
+            jQuery.ajaxSetup({ async: false });
+            var resultObj = executeCommand(getReqStr, "http://api.login2explore.com:5577", "/api/irl");
+            jQuery.ajaxSetup({ async: true });
+
+            if (resultObj.status === 200) {
+                alert("Roll No already exists. Please use a different Roll No.");
+                $("#rollNo").focus();
+                return;
+            }
+
+            var putReqStr = createPUTRequest("90932151|-31949221147618108|90963797", jsonStr, "STUDENT-DB", "STUDENT-REL");
+            console.log("PUT Request String: " + putReqStr); // Added for debugging
+            jQuery.ajaxSetup({ async: false });
+            resultObj = executeCommand(putReqStr, "http://api.login2explore.com:5577", "/api/iml");
+            console.log("Response Object: " + JSON.stringify(resultObj)); // Added for debugging
+            alert(JSON.stringify(resultObj));
+            jQuery.ajaxSetup({ async: true });
+            resetForm();
+        }
+
+        function updateSTUDENTDB() {
+            var jsonStr = validateAndGetFormData();
+            if (jsonStr === "") {
+                return;
+            }
+
+            var updateReqStr = createUPDATERequest("90932151|-31949221147618108|90963797", jsonStr, "STUDENT-DB", "STUDENT-REL");
+            console.log("UPDATE Request String: " + updateReqStr); // Added for debugging
+            jQuery.ajaxSetup({ async: false });
+            var resultObj = executeCommand(updateReqStr, "http://api.login2explore.com:5577", "/api/iml");
+            console.log("Response Object: " + JSON.stringify(resultObj)); // Added for debugging
+            alert(JSON.stringify(resultObj));
+            jQuery.ajaxSetup({ async: true });
+            resetForm();
+        }
+
+        function checkRollNo() {
+            var rollNoVar = $("#rollNo").val();
+            if (rollNoVar === "") {
+                return;
+            }
+
+            var getReqStr = createGETRequest("90932151|-31949221147618108|90963797", "STUDENT-DB", "STUDENT-REL", rollNoVar);
+            jQuery.ajaxSetup({ async: false });
+            var resultObj = executeCommand(getReqStr, "http://api.login2explore.com:5577", "/api/irl");
+            jQuery.ajaxSetup({ async: true });
+
+            if (resultObj.status === 200) {
+                var record = JSON.parse(resultObj.data).record;
+                $("#FullName").val(record.Name).prop("disabled", false);
+                $("#class").val(record.class).prop("disabled", false);
+                $("#birthDate").val(record.birthDate).prop("disabled", false);
+                $("#address").val(record.address).prop("disabled", false);
+                $("#enrollmentDate").val(record.enrollmentDate).prop("disabled", false);
+                $("#rollNo").prop("disabled", true);
+                $("#StudentSave").prop("disabled", true);
+                $("#StudentUpdate").prop("disabled", false);
+                $("#StudentReset").prop("disabled", false);
+                $("#FullName").focus();
+            } else {
+                $("#FullName").val("").prop("disabled", false);
+                $("#class").val("").prop("disabled", false);
+                $("#birthDate").val("").prop("disabled", false);
+                $("#address").val("").prop("disabled", false);
+                $("#enrollmentDate").val("").prop("disabled", false);
+                $("#rollNo").prop("disabled", false);
+                $("#StudentSave").prop("disabled", false);
+                $("#StudentUpdate").prop("disabled", true);
+                $("#StudentReset").prop("disabled", false);
+            }
+        }
+    </script>
+</body>
+</html>
